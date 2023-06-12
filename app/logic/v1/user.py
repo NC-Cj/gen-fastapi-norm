@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
-from ..controllers.controllers import sync_catch_controller
-from ..dao import crud
+from ...controllers.controllers import sync_catch_controller
+from ...dao import crud
 
 
 @sync_catch_controller

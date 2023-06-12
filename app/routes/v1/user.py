@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from ..logic import user
+from ...logic.v1 import user
 
 app = APIRouter()
 
