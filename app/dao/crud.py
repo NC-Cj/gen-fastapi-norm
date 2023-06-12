@@ -1,4 +1,4 @@
-from ..models.shema import User
+from ..models.schema import User
 
 
 def query_user_list():
