@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 
 from app import middlewares
 from app.env import env
-from app.routers.v1 import user
+from app.routes.v1 import user
 
 prefix = "/api"
 
