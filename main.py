@@ -6,6 +6,10 @@ from app.routes.v1 import user
 
 prefix = "/api"
 
+"""
+Usually your project goes into production, and I don't recommend external access to your documentation 
+center unless you have specific requests
+"""
 if env.bool('PROD'):
     app = FastAPI(docs_url=None, redoc_url=None)
 else:
