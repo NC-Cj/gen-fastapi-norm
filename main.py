@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 
 from app import middlewares
 from app.env import env
@@ -7,7 +7,7 @@ from app.routes.v1 import user
 prefix = "/api"
 
 """
-Usually your project goes into production, and I don't recommend external access to your documentation 
+Usually your project goes into production, and I don't recommend external access to your documentation
 center unless you have specific requests
 """
 if env.bool('PROD'):
@@ -19,26 +19,11 @@ else:
         docs_url=f'{prefix}/docs'
     )
 
-middlewares.add_middlewares(app)
-
-
-# Add request logging middleware
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    # Log the request
-    print(f"Received request: {request.method} {request.url}")
-
-    # Call the next middleware or route handler
-    response = await call_next(request)
-
-    # Log the response
-    print(f"Sent response: {response.status_code}")
-
-    return response
-
+middlewares.init_middlewares(app)
 
 app.include_router(user.app, prefix=prefix)
 
+# And so on for other routes and functions in your application
 if __name__ == '__main__':
     import uvicorn
 
