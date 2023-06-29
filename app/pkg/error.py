@@ -3,4 +3,9 @@ class NoPermissions(Exception):
         self.message = message
 
 
-exceptions_to_catch = [NoPermissions]
+class DatabaseFailure(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+exceptions_to_catch = [NoPermissions, DatabaseFailure]

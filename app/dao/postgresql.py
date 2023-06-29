@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
@@ -12,5 +14,10 @@ Base = automap_base()
 Base.prepare(autoload_with=__engine)
 
 
-def get_session() -> sessionmaker:
-    return __Session
+@contextmanager
+def get_session():
+    session = __Session()
+    try:
+        yield session
+    finally:
+        session.close()
