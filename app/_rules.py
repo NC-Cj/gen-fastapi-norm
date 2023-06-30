@@ -1,0 +1,9 @@
+class Rule:
+    PRINT_STACK = False
+    INTERNAL_ERROR_OUTPUT = True
+
+
+class ResponseCode:
+    SERVICE_SUCCESS = 1000
+    SERVICE_FAILURE = 1001
+    SERVICE_EXCEPTION = 1002

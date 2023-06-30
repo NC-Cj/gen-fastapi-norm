@@ -4,7 +4,7 @@ from typing import List
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from .postgresql import get_session
+from ..dao.postgresql import get_session
 from ..pkg.error import DatabaseFailure
 
 

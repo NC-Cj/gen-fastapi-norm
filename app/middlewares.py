@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from .core.api_log import logger
 from .pkg import tools
 
 
@@ -19,7 +20,7 @@ class __AddRequestHeaders(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Request-Time"] = request_time
 
-        print(request_id, request_time)
+        logger.debug(f"{request_id} | {request_time}")
 
         return response
 
@@ -28,9 +29,11 @@ class __AddRequestHeaders(BaseHTTPMiddleware):
 class __LogRequest(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
-        print(f"[LOG] Received request: {request.method} {request.url}")
+        logger.info(f"{request.method} | {request.url}")
+
         response = await call_next(request)
-        print(f"[LOG] Sent response: {response.status_code}")
+
+        logger.debug(response.status_code)
 
         return response
 
