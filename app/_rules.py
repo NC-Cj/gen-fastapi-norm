@@ -4,6 +4,6 @@ class Rule:
 
 
 class ResponseCode:
-    SERVICE_SUCCESS = 1000
-    SERVICE_FAILURE = 1001
-    SERVICE_EXCEPTION = 1002
+    SUCCESS = 1000
+    FAILURE = 1001
+    INTERNAL_ERROR = 1002

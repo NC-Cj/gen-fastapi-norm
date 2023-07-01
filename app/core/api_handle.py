@@ -12,41 +12,41 @@ async def async_handle_exceptions(fn, *args, **kwargs):
     try:
         resp = await fn(*args, **kwargs)
     except HTTPException as e:
-        return PublicResponse(code=ResponseCode.SERVICE_FAILURE, data=None, msg=e.detail)
+        return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.detail)
     except Exception as e:
         logger.warning(f'Caught exception: {e}')
         if isinstance(e, tuple(exceptions_to_catch)):
-            return PublicResponse(code=ResponseCode.SERVICE_FAILURE, data=None, msg=e.message)
+            return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.message)
 
         if Rule.PRINT_STACK:
             print_exc()
 
         if Rule.INTERNAL_ERROR_OUTPUT:
-            return PublicResponse(code=ResponseCode.SERVICE_EXCEPTION, data=None, msg=e.__str__())
+            return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=e.__str__())
 
-        return PublicResponse(code=ResponseCode.SERVICE_EXCEPTION, data=None, msg="service busy")
+        return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")
 
     else:
-        return PublicResponse(code=ResponseCode.SERVICE_SUCCESS, data=resp, msg="success")
+        return PublicResponse(code=ResponseCode.SUCCESS, data=resp, msg="success")
 
 
 def sync_handle_exceptions(fn, *args, **kwargs):
     try:
         resp = fn(*args, **kwargs)
     except HTTPException as e:
-        return PublicResponse(code=ResponseCode.SERVICE_FAILURE, data=None, msg=e.detail)
+        return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.detail)
     except Exception as e:
         logger.warning(f'Caught exception: {e}')
         if isinstance(e, tuple(exceptions_to_catch)):
-            return PublicResponse(code=ResponseCode.SERVICE_FAILURE, data=None, msg=e.message)
+            return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.message)
 
         if Rule.PRINT_STACK:
             print_exc()
 
         if Rule.INTERNAL_ERROR_OUTPUT:
-            return PublicResponse(code=ResponseCode.SERVICE_EXCEPTION, data=None, msg=e.__str__())
+            return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=e.__str__())
 
-        return PublicResponse(code=ResponseCode.SERVICE_EXCEPTION, data=None, msg="service busy")
+        return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")
 
     else:
-        return PublicResponse(code=ResponseCode.SERVICE_SUCCESS, data=resp, msg="success")
+        return PublicResponse(code=ResponseCode.SUCCESS, data=resp, msg="success")
