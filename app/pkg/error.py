@@ -8,4 +8,9 @@ class DatabaseFailure(Exception):
         self.message = message
 
 
+class UnsupportedDataTypeError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
 exceptions_to_catch = [NoPermissions, DatabaseFailure]

@@ -6,12 +6,16 @@ from sqlalchemy.orm import Session
 
 from ..dao.postgresql import get_session
 from ..pkg.error import DatabaseFailure
+from ..pkg.tools import model_to_dict
 
 
 def with_db_session(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         with get_session() as session:
+            if kwargs.get("data"):
+                kwargs["data"] = model_to_dict(kwargs.get("data"))
+
             return fn(*args, session=session, **kwargs)
 
     return wrapper
