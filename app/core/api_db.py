@@ -1,14 +1,14 @@
 from functools import wraps
-from typing import List
+from typing import List, Optional
 
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.orm import Session
 
 from ..dao.postgresql import get_session
 from ..pkg.error import DatabaseFailure
 
 
-def __depends(fn):
+def with_db_session(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         with get_session() as session:
@@ -17,33 +17,33 @@ def __depends(fn):
     return wrapper
 
 
-@__depends
-def query_all(entities, session: Session, **kwargs):
-    return session.query(entities).filter_by(**kwargs).all()
+@with_db_session
+def query_all(model, session: Session, **kwargs):
+    return session.query(model).filter_by(**kwargs).all()
 
 
-@__depends
-def query_first(entities, session: Session, **kwargs):
-    return session.query(entities).filter_by(**kwargs).first()
+@with_db_session
+def query_first(model, session: Session, **kwargs):
+    return session.query(model).filter_by(**kwargs).first()
 
 
-@__depends
-def insert_many(entities, session: Session, data: List[dict]):
+@with_db_session
+def insert_many(model, session: Session, data: List[dict]):
     try:
-        instances = [entities(**d) for d in data]
-        session.add_all(instances)
+        models = [model(**d) for d in data]
+        session.bulk_save_objects(models)
         session.commit()
-    except SQLAlchemyError as e:
+    except IntegrityError as e:
         session.rollback()
         raise DatabaseFailure(e) from e
 
 
-@__depends
-def insert_one(entity, session: Session, **data):
+@with_db_session
+def insert_one(model, session: Session, data: dict):
     try:
-        instance = entity(**data)
+        instance = model(**data)
         session.add(instance)
-        session.commit()
+        session.flush()
         session.refresh(instance)
         return instance
     except SQLAlchemyError as e:
@@ -51,24 +51,24 @@ def insert_one(entity, session: Session, **data):
         raise DatabaseFailure(e) from e
 
 
-def update_many():
-    pass
-
-
-def update_one():
-    pass
-
-
-@__depends
-def upsert(entity, session: Session, data: dict, **kwargs):
+@with_db_session
+def update_many(model, session: Session, data: dict, limit: Optional[int] = 100):
     try:
-        instance = session.query(entity).filter_by(**kwargs).first()
-        if instance:
-            for key, value in data.items():
-                setattr(instance, key, value)
-        else:
-            instance = entity(**data)
-            session.add(instance)
+        session.query(model).filter_by(**data.pop('filter', {})).update(data, synchronize_session=False)
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise DatabaseFailure(e) from e
+
+
+@with_db_session
+def update_one(model, session: Session, data: dict, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+    if not instance:
+        return None
+    try:
+        for key, value in data.items():
+            setattr(instance, key, value)
         session.commit()
         return instance
     except SQLAlchemyError as e:
@@ -76,23 +76,42 @@ def upsert(entity, session: Session, data: dict, **kwargs):
         raise DatabaseFailure(e) from e
 
 
-@__depends
-def delete_many(entities, session: Session, **kwargs):
+@with_db_session
+def upsert(model, session: Session, data: dict, **kwargs):
     try:
-        session.query(entities).filter_by(**kwargs).delete(synchronize_session=False)
+        instance = session.query(model).filter_by(**kwargs).first()
+        if instance:
+            for key, value in data.items():
+                setattr(instance, key, value)
+            session.merge(instance)
+        else:
+            instance = model(**data)
+            session.add(instance)
+        session.commit()
+        return instance
+    except IntegrityError as e:
+        session.rollback()
+        raise DatabaseFailure(e) from e
+
+
+@with_db_session
+def delete_many(model, session: Session, **kwargs):
+    try:
+        session.query(model).filter_by(**kwargs).delete(synchronize_session=False)
         session.commit()
     except SQLAlchemyError as e:
         session.rollback()
         raise DatabaseFailure(e) from e
 
 
-@__depends
-def delete_one(entity, session: Session, **kwargs):
+@with_db_session
+def delete_one(model, session: Session, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+    if not instance:
+        return None
     try:
-        instance = session.query(entity).filter_by(**kwargs).first()
-        if instance:
-            session.delete(instance)
-            session.commit()
+        session.delete(instance)
+        session.commit()
         return instance
     except SQLAlchemyError as e:
         session.rollback()
