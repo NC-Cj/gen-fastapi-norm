@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import List, Optional
+from typing import Optional, Union
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.orm import Session
@@ -32,27 +32,27 @@ def query_first(model, session: Session, **kwargs):
 
 
 @with_db_session
-def insert_many(model, session: Session, data: List[dict]):
+def insert(model, session: Session, data: Union[list, dict], refresh=False):
     try:
-        models = [model(**d) for d in data]
-        session.bulk_save_objects(models)
-        session.commit()
+        if isinstance(data, dict):
+            instance = model(**data)
+            session.add(instance)
+            session.commit()
+        elif isinstance(data, list):
+            instance = [model(**d) for d in data]
+            session.bulk_save_objects(instance)
+            session.commit()
+        else:
+            raise TypeError("argument: data, must be a dict or a list of dicts")
     except IntegrityError as e:
         session.rollback()
         raise DatabaseFailure(e) from e
-
-
-@with_db_session
-def insert_one(model, session: Session, data: dict):
-    try:
-        instance = model(**data)
-        session.add(instance)
-        session.flush()
-        session.refresh(instance)
-        return instance
-    except SQLAlchemyError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
+    else:
+        if refresh:
+            if not isinstance(instance, list):
+                session.refresh(instance)
+            return instance
+        return "ok"
 
 
 @with_db_session
