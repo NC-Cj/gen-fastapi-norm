@@ -18,10 +18,10 @@ async def async_handle_exceptions(fn, *args, **kwargs):
         if isinstance(e, tuple(exceptions_to_catch)):
             return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.message)
 
-        if Rule.PRINT_STACK:
+        if Rule.PRINT_ERROR_STACK:
             print_exc()
 
-        if Rule.INTERNAL_ERROR_OUTPUT:
+        if Rule.OUTPUT_INTERNAL_ERROR:
             return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=e.__str__())
 
         return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")
@@ -40,10 +40,10 @@ def sync_handle_exceptions(fn, *args, **kwargs):
         if isinstance(e, tuple(exceptions_to_catch)):
             return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.message)
 
-        if Rule.PRINT_STACK:
+        if Rule.PRINT_ERROR_STACK:
             print_exc()
 
-        if Rule.INTERNAL_ERROR_OUTPUT:
+        if Rule.OUTPUT_INTERNAL_ERROR:
             return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=e.__str__())
 
         return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")

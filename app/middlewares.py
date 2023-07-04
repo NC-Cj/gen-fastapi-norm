@@ -3,37 +3,35 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from ._rules import Rule
 from .core.api_log import logger
 from .pkg import tools
 
 
-# Add request headers middleware
-class __AddRequestHeaders(BaseHTTPMiddleware):
+class __CustomMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
-        request_id = tools.generate_request_id()
-        request_time = tools.generate_request_time()
+        response = None
 
-        request.state.traceid = request_id
-        response = await call_next(request)
+        if Rule.ADD_REQUEST_LOGGING_MIDDLEWARE:
+            logger.info(f"{request.method} | {request.url}")
+            response = await call_next(request)
+            logger.debug(response.status_code)
 
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Request-Time"] = request_time
+        if Rule.ADD_LINK_TRACKING_MIDDLEWARE:
+            request_id = tools.generate_request_id()
+            request_time = tools.generate_request_time()
 
-        logger.debug(f"{request_id} | {request_time}")
+            request.state.traceid = request_id
+            response = await call_next(request)
 
-        return response
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Request-Time"] = request_time
 
+            logger.debug(f"{request_id} | {request_time}")
 
-# Add request logging middleware
-class __LogRequest(BaseHTTPMiddleware):
-
-    async def dispatch(self, request: Request, call_next):
-        logger.info(f"{request.method} | {request.url}")
-
-        response = await call_next(request)
-
-        logger.debug(response.status_code)
+        if response is None:
+            response = await call_next(request)
 
         return response
 
@@ -53,5 +51,4 @@ def init_middlewares(app: FastAPI):
         allowed_hosts=["*"],
     )
 
-    app.add_middleware(__AddRequestHeaders)
-    app.add_middleware(__LogRequest)
+    app.add_middleware(__CustomMiddleware)
