@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Union
 
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..dao.postgresql import get_session
@@ -55,73 +55,56 @@ def insert(model, session: Session, data: Union[list, dict], refresh=False):
         return "ok"
 
 
-
 @with_db_session
-def update(model, session: Session, filter_by: dict, data: dict):
+def delete(model, session: Session, **kwargs) -> str:
     try:
-        updated_rows = session.query(model).filter_by(**filter_by).update(data)
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
-    else:
-        return updated_rows
-
-@with_db_session
-def delete(model, session: Session, filter_by: dict):
-    try:
-        deleted_rows = session.query(model).filter_by(**filter_by).delete()
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
-    else:
-        return deleted_rows
-
-@with_db_session
-def upsert(model, session: Session, data: Union[list, dict], unique_columns: list, update_columns=None):
-    try:
-        if isinstance(data, dict):
-            data = [data]
-
-        for entry in data:
-            unique_filter = {key: entry[key] for key in unique_columns}
-            instance = session.query(model).filter_by(**unique_filter).first()
-            if instance:
-                if update_columns:
-                    update_data = {key: entry[key] for key in update_columns}
-                else:
-                    update_data = entry
-                session.query(model).filter_by(**unique_filter).update(update_data)
+        query = session.query(model)
+        for k, v in kwargs.items():
+            if isinstance(v, (list, tuple)):
+                query = query.filter(getattr(model, k).in_(v))
             else:
-                instance = model(**entry)
-                session.add(instance)
+                query = query.filter_by(**{k: v})
+
+        query.delete(synchronize_session=False)
         session.commit()
-    except IntegrityError as e:
+    except Exception as e:
         session.rollback()
         raise DatabaseFailure(e) from e
     else:
         return "ok"
 
 
+@with_db_session
+def upsert(model, session: Session, data: Union[list, dict], unique_columns: list, update_columns=None, refresh=False):
+    instances = []
+    try:
+        if isinstance(data, dict):
+            data = [data]
 
+        for item in data:
+            unique_filter = {key: item[key] for key in unique_columns}
+            instance = session.query(model).filter_by(**unique_filter).first()
 
+            if instance:
+                if update_columns:
+                    update_data = {key: item[key] for key in update_columns}
+                else:
+                    update_data = item
 
+                for key, value in update_data.items():
+                    setattr(instance, key, value)
 
+            else:
+                instance = model(**item)
+                session.add(instance)
+            instances.append(instance)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        raise DatabaseFailure(e) from e
+    else:
+        return instances if refresh else "ok"
 
 
 @with_db_session
@@ -132,9 +115,7 @@ def update(model, session: Session, data: Union[list, dict], refresh=False, **kw
             if isinstance(v, (list, tuple)):
                 instance = instance.filter(getattr(model, k).in_(v))
             else:
-                instance.filter_by(**{k: v})
-
-        print(instance)
+                instance = instance.filter_by(**{k: v})
 
         if isinstance(data, (dict, list)):
             instance.update(data, synchronize_session=False)
@@ -146,45 +127,3 @@ def update(model, session: Session, data: Union[list, dict], refresh=False, **kw
         raise DatabaseFailure(e) from e
     else:
         return instance.all() if refresh else "ok"
-
-
-@with_db_session
-def upsert(model, session: Session, data: dict, **kwargs):
-    try:
-        instance = session.query(model).filter_by(**kwargs).first()
-        if instance:
-            for key, value in data.items():
-                setattr(instance, key, value)
-            session.merge(instance)
-        else:
-            instance = model(**data)
-            session.add(instance)
-        session.commit()
-        return instance
-    except IntegrityError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
-
-
-@with_db_session
-def delete_many(model, session: Session, **kwargs):
-    try:
-        session.query(model).filter_by(**kwargs).delete(synchronize_session=False)
-        session.commit()
-    except SQLAlchemyError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
-
-
-@with_db_session
-def delete_one(model, session: Session, **kwargs):
-    instance = session.query(model).filter_by(**kwargs).first()
-    if not instance:
-        return None
-    try:
-        session.delete(instance)
-        session.commit()
-        return instance
-    except SQLAlchemyError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
