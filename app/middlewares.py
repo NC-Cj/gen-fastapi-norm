@@ -1,7 +1,10 @@
+import json
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import StreamingResponse
 
 from ._rules import Rule
 from .core.api_log import logger
@@ -11,27 +14,28 @@ from .pkg import tools
 class __CustomMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
-        response = None
+        request_id = tools.generate_request_id()
+        request_time = tools.generate_request_time()
+
+        request.state.traceid = request_id
+
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Request-Time"] = request_time
 
         if Rule.ADD_REQUEST_LOGGING_MIDDLEWARE:
-            logger.info(f"{request.method} | {request.url}")
-            response = await call_next(request)
-            logger.debug(response.status_code)
+            body_bytes = b"".join([chunk async for chunk in response.body_iterator])
+            body_str = body_bytes.decode("utf-8")
+            body = json.loads(body_str)
+            custom_code = body.get("code")
 
-        if Rule.ADD_LINK_TRACKING_MIDDLEWARE:
-            request_id = tools.generate_request_id()
-            request_time = tools.generate_request_time()
+            logger.info(f"{request.method} | {request.url} | {request.state.traceid} | {request_time}")
+            logger.info(f"HTTP.code | {response.status_code} | {custom_code}")
 
-            request.state.traceid = request_id
-            response = await call_next(request)
+            async def new_body_iterator():
+                yield body_bytes
 
-            response.headers["X-Request-ID"] = request_id
-            response.headers["X-Request-Time"] = request_time
-
-            logger.debug(f"{request_id} | {request_time}")
-
-        if response is None:
-            response = await call_next(request)
+            response = StreamingResponse(new_body_iterator(), headers=response.headers)
 
         return response
 
