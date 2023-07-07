@@ -14,6 +14,9 @@ from .pkg import tools
 class __CustomMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
+        if request.url.path in ["/favicon.ico", "/api/redoc", "/api/docs", "/api/openapi.json"]:
+            return await call_next(request)
+
         request_id = tools.generate_request_id()
         request_time = tools.generate_request_time()
 

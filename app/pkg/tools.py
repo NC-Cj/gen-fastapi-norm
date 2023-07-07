@@ -1,6 +1,10 @@
 import datetime
 import uuid
 from typing import Any
+from typing import List, Type, Union
+
+from pydantic import BaseModel
+from pydantic_sqlalchemy import sqlalchemy_to_pydantic as __sqlalchemy_to_pydantic
 
 from .error import UnsupportedDataTypeError
 
@@ -36,3 +40,14 @@ def model_to_dict(data: Any) -> Any:
         return data.dict()
     else:
         raise UnsupportedDataTypeError(f'Unsupported data type: {type(data)}')
+
+
+def sqlalchemy_to_pydantic(
+        model: Union[Type, List[Type]],
+        exclude: List[str] = None
+) -> Union[list[BaseModel], BaseModel]:
+    if isinstance(model, list):
+        result = [__sqlalchemy_to_pydantic(type(item), exclude=exclude).parse_obj(item.__dict__) for item in model]
+        return result
+
+    return __sqlalchemy_to_pydantic(type(model), exclude=exclude).parse_obj(model.__dict__)
