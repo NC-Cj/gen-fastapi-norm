@@ -28,4 +28,4 @@ app.include_router(user.app, prefix=config.prefix)
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run("main:app", **config.server)
+    uvicorn.run(**config.server)
