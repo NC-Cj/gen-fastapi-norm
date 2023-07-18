@@ -1,10 +1,8 @@
 from functools import wraps
-from typing import Any, Dict, List, Optional, Union
+from typing import Union, List, Optional
 
-from sqlalchemy import and_, not_, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import ClauseElement
+from sqlalchemy.orm import Session, InstrumentedAttribute, selectinload, joinedload
 
 from ..dao.postgresql import get_session
 from ..pkg.error import DatabaseFailure
@@ -75,14 +73,14 @@ def insert(model, session: Session, data: Union[list, dict], refresh=False):
 @with_db_session
 def delete(model, session: Session, **kwargs) -> str:
     try:
-        query = session.query(model)
+        qs = session.query(model)
         for k, v in kwargs.items():
             if isinstance(v, (list, tuple)):
-                query = query.filter(getattr(model, k).in_(v))
+                qs = qs.filter(getattr(model, k).in_(v))
             else:
-                query = query.filter_by(**{k: v})
+                qs = qs.filter_by(**{k: v})
 
-        query.delete(synchronize_session=False)
+        qs.delete(synchronize_session=False)
         session.commit()
     except Exception as e:
         session.rollback()
