@@ -2,7 +2,7 @@ from functools import wraps
 from typing import Union, List, Optional
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, InstrumentedAttribute, selectinload, joinedload
+from sqlalchemy.orm import Session, InstrumentedAttribute, load_only, defer
 
 from ..dao.postgresql import get_session
 from ..pkg.error import DatabaseFailure
@@ -23,27 +23,29 @@ def with_db_session(fn):
 
 @with_db_session
 def query(
-        model: Any,
+        model,
         session: Session,
-        first: bool = False,
-        filters: Optional[Dict[str, Union[Any, Dict[str, Any]]]] = None,
-        column: Optional[List[str]] = None,
-        order_by: Optional[List[str]] = None,
-        join: Optional[str] = None
-) -> Union[ClauseElement, Any]:
-    query_stmt = session.query(model, )
-    if join:
-        query_stmt = query_stmt.join(join)
-    if filters:
-        query_stmt = query_stmt.filter(_build_filter(model, filters, join))
-    if column:
-        columns = [getattr(model, col) for col in column]
-        query_stmt = query_stmt.with_entities(*columns)
-    if order_by:
-        order_bys = [getattr(model, col) for col in order_by]
-        query_stmt = query_stmt.order_by(*order_bys)
+        first=False,
+        joins: Optional[List[Union[InstrumentedAttribute, tuple]]] = None,
+        includes: Optional[List[InstrumentedAttribute]] = None,
+        excludes: Optional[List[InstrumentedAttribute]] = None,
+        **kwargs
+):
+    qs = session.query(model)
 
-    return query_stmt.first() if first else query_stmt.all()
+    if joins:
+        for item in joins:
+            qs = qs.join(*item) if isinstance(item, tuple) else qs.join(item)
+
+    qs = qs.filter_by(**kwargs)
+
+    if includes:
+        qs = qs.options(load_only(*includes))
+
+    if excludes:
+        qs = qs.options(defer(*excludes))
+
+    return qs.first() if first else qs.all()
 
 
 @with_db_session
@@ -142,103 +144,3 @@ def update(model, session: Session, data: Union[list, dict], refresh=False, **kw
         raise DatabaseFailure(e) from e
     else:
         return instance.all() if refresh else "ok"
-
-
-def _build_filter(
-        model: Any,
-        filters: Dict[str, Union[Any, Dict[str, Any]]],
-        join: Optional[str] = None
-) -> ClauseElement:
-    clauses = []
-    for key, value in filters.items():
-        if isinstance(value, dict):
-            clause = _build_complex_filter(model, key, value, join)
-        else:
-            clause = _build_eq_filter(model, key, value, join)
-        clauses.append(clause)
-    return and_(*clauses)
-
-
-def _build_eq_filter(model, key, value, join=None):
-    if not join:
-        return getattr(model, key) == value
-    join_model, join_key = join.split('.')
-    if model.__name__ == join_model:
-        return getattr(model, key) == getattr(model, join_key)
-    join_table = getattr(model, join_model)
-    return join_table.c[join_key] == value
-
-
-def _build_operator_filter(
-        model: Any,
-        key: str,
-        operator: str,
-        value: Any,
-        join: Optional[str] = None
-) -> Union[bool, ClauseElement, Any]:
-    if operator == 'eq':
-        return _build_eq_filter(model, key, value, join)
-    elif operator == 'ne':
-        return not_(_build_eq_filter(model, key, value, join))
-    elif operator == 'lt':
-        return getattr(model, key) < value
-    elif operator == 'le':
-        return getattr(model, key) <= value
-    elif operator == 'gt':
-        return getattr(model, key) > value
-    elif operator == 'ge':
-        return getattr(model, key) >= value
-    elif operator == 'like':
-        return getattr(model, key).like(value)
-    elif operator == 'ilike':
-        return getattr(model, key).ilike(value)
-    elif operator == 'in':
-        return getattr(model, key).in_(value)
-    elif operator == 'not_in':
-        return not_(getattr(model, key).in_(value))
-    elif operator == 'is_null':
-        return getattr(model, key).is_(None)
-    elif operator == 'is_not_null':
-        return getattr(model, key).isnot(None)
-    elif operator == 'between':
-        return getattr(model, key).between(value[0], value[1])
-    elif operator == 'not_between':
-        return not_(getattr(model, key).between(value[0], value[1]))
-    elif operator == 'contains':
-        return getattr(model, key).contains(value)
-    elif operator == 'not_contains':
-        return not_(getattr(model, key).contains(value))
-    elif operator == 'startswith':
-        return getattr(model, key).startswith(value)
-    elif operator == 'endswith':
-        return getattr(model, key).endswith(value)
-    elif operator == 'or':
-        return _build_or_filter(model, key, value)
-    else:
-        raise ValueError(f'Unsupported operator: {operator}')
-
-
-def _build_or_filter(
-        model: Any,
-        key: str,
-        value: List[Dict[str, Any]],
-        join: Optional[str] = None
-) -> ClauseElement:
-    sub_clauses = []
-    for sub_filters in value:
-        sub_clause = _build_complex_filter(model, key, sub_filters, join)
-        sub_clauses.append(sub_clause)
-    return or_(*sub_clauses)
-
-
-def _build_complex_filter(
-        model: Any,
-        key: str,
-        filters: Dict[str, Any],
-        join: Optional[str] = None
-) -> ClauseElement:
-    clauses = []
-    for op, value in filters.items():
-        clause = _build_operator_filter(model, key, op, value, join)
-        clauses.append(clause)
-    return and_(*clauses)
