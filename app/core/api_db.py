@@ -2,7 +2,7 @@ from functools import wraps
 from typing import Union, List, Optional
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, InstrumentedAttribute, load_only, defer
+from sqlalchemy.orm import Session, InstrumentedAttribute, load_only, defer, joinedload
 
 from ..dao.postgresql import get_session
 from ..pkg.error import DatabaseFailure
@@ -22,22 +22,46 @@ def with_db_session(fn):
 
 
 @with_db_session
+def simple_query(
+        model,
+        session: Session,
+        first=False,
+        includes: Optional[List[InstrumentedAttribute]] = None,
+        excludes: Optional[List[InstrumentedAttribute]] = None,
+        **kwargs
+):
+    qs = session.query(model).filter_by(**kwargs)
+
+    if includes:
+        qs = qs.options(load_only(*includes))
+    if excludes:
+        qs = qs.options(defer(*excludes))
+
+    return qs.first() if first else qs.all()
+
+
+@with_db_session
 def query(
         model,
         session: Session,
         first=False,
         joins: Optional[List[Union[InstrumentedAttribute, tuple]]] = None,
+        join_load: Optional[List[InstrumentedAttribute]] = None,
         includes: Optional[List[InstrumentedAttribute]] = None,
         excludes: Optional[List[InstrumentedAttribute]] = None,
         **kwargs
 ):
     qs = session.query(model)
 
-    if joins:
-        for item in joins:
-            qs = qs.join(*item) if isinstance(item, tuple) else qs.join(item)
+    # if joins:
+    #     for item in joins:
+    #         qs = qs.join(*item) if isinstance(item, tuple) else qs.join(item)
 
     qs = qs.filter_by(**kwargs)
+
+    if join_load:
+        for item in join_load:
+            qs = qs.options(joinedload(item))
 
     if includes:
         qs = qs.options(load_only(*includes))
@@ -45,6 +69,7 @@ def query(
     if excludes:
         qs = qs.options(defer(*excludes))
 
+    print(qs)
     return qs.first() if first else qs.all()
 
 
