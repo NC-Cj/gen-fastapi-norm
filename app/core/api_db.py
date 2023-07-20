@@ -45,19 +45,12 @@ def query(
         model,
         session: Session,
         first=False,
-        joins: Optional[List[Union[InstrumentedAttribute, tuple]]] = None,
         join_load: Optional[List[InstrumentedAttribute]] = None,
         includes: Optional[List[InstrumentedAttribute]] = None,
         excludes: Optional[List[InstrumentedAttribute]] = None,
         **kwargs
 ):
-    qs = session.query(model)
-
-    # if joins:
-    #     for item in joins:
-    #         qs = qs.join(*item) if isinstance(item, tuple) else qs.join(item)
-
-    qs = qs.filter_by(**kwargs)
+    qs = session.query(model).filter_by(**kwargs)
 
     if join_load:
         for item in join_load:
