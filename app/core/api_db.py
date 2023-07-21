@@ -22,14 +22,12 @@ def with_db_session(fn):
 
 
 @with_db_session
-def simple_query(
-        model,
-        session: Session,
-        first=False,
-        includes: Optional[List[InstrumentedAttribute]] = None,
-        excludes: Optional[List[InstrumentedAttribute]] = None,
-        **kwargs
-):
+def simple_query(model,
+                 session: Session,
+                 first=False,
+                 includes: Optional[List[InstrumentedAttribute]] = None,
+                 excludes: Optional[List[InstrumentedAttribute]] = None,
+                 **kwargs) -> Union[list, str]:
     qs = session.query(model).filter_by(**kwargs)
 
     if includes:
@@ -41,15 +39,13 @@ def simple_query(
 
 
 @with_db_session
-def query(
-        model,
-        session: Session,
-        first=False,
-        join_load: Optional[List[InstrumentedAttribute]] = None,
-        includes: Optional[List[InstrumentedAttribute]] = None,
-        excludes: Optional[List[InstrumentedAttribute]] = None,
-        **kwargs
-):
+def query(model,
+          session: Session,
+          first=False,
+          join_load: Optional[List[InstrumentedAttribute]] = None,
+          includes: Optional[List[InstrumentedAttribute]] = None,
+          excludes: Optional[List[InstrumentedAttribute]] = None,
+          **kwargs) -> Union[list, str]:
     qs = session.query(model).filter_by(**kwargs)
 
     if join_load:
@@ -67,7 +63,10 @@ def query(
 
 
 @with_db_session
-def insert(model, session: Session, data: Union[list, dict], refresh=False):
+def insert(model,
+           session: Session,
+           data: Union[list, dict],
+           refresh=False) -> Union[list, str]:
     try:
         if isinstance(data, dict):
             instance = model(**data)
@@ -91,7 +90,9 @@ def insert(model, session: Session, data: Union[list, dict], refresh=False):
 
 
 @with_db_session
-def delete(model, session: Session, **kwargs) -> str:
+def delete(model,
+           session: Session,
+           **kwargs) -> str:
     try:
         qs = session.query(model)
         for k, v in kwargs.items():
@@ -110,7 +111,12 @@ def delete(model, session: Session, **kwargs) -> str:
 
 
 @with_db_session
-def upsert(model, session: Session, data: Union[list, dict], unique_columns: list, update_columns=None, refresh=False):
+def upsert(model,
+           session: Session,
+           data: Union[list, dict],
+           unique_columns: list,
+           update_columns=None,
+           refresh=False) -> Union[list, str]:
     instances = []
     try:
         if isinstance(data, dict):
@@ -143,7 +149,11 @@ def upsert(model, session: Session, data: Union[list, dict], unique_columns: lis
 
 
 @with_db_session
-def update(model, session: Session, data: Union[list, dict], refresh=False, **kwargs):
+def update(model,
+           session: Session,
+           data: Union[list, dict],
+           refresh=False,
+           **kwargs) -> Union[list, str]:
     try:
         instance = session.query(model)
         for k, v in kwargs.items():
