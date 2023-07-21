@@ -42,10 +42,8 @@ def model_to_dict(data: Any) -> Any:
         raise UnsupportedDataTypeError(f'Unsupported data type: {type(data)}')
 
 
-def sqlalchemy_to_pydantic(
-        model: Union[Type, List[Type]],
-        exclude: List[str] = None
-) -> Union[list[BaseModel], BaseModel]:
+def sqlalchemy_to_pydantic(model: Union[Type, List[Type]],
+                           exclude: List[str] = []) -> Union[List[BaseModel], BaseModel]:
     if isinstance(model, list):
         result = [__sqlalchemy_to_pydantic(type(item), exclude=exclude).parse_obj(item.__dict__) for item in model]
         return result
