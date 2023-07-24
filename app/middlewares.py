@@ -26,13 +26,22 @@ class __CustomMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Request-Time"] = request_time
 
-        if Rule.ADD_REQUEST_LOGGING_MIDDLEWARE:
+        if Rule.LOGGING_ALL_REQUESTS:
+            logger.info(f"{request.method} | {request.url} | {request.state.traceid} | {request_time}")
+
+        if Rule.LOGGING_NON_200_STATUS and response.status_code != 200:
+            if Rule.LOGGING_ALL_REQUESTS:
+                logger.warning("You have enabled recording of global requests, and any requests will be recorded  \n "
+                               "`LOGGING_ALL_REQUESTS` and `LOGGING_NON_200_STATUS` should not be opened simultaneously")
+            else:
+                logger.info(f"{request.method} | {request.url.path} | {response.status_code}")
+
+        if Rule.LOGGING_CUSTOM_RESPONSE_CODE:
             body_bytes = b"".join([chunk async for chunk in response.body_iterator])
             body_str = body_bytes.decode("utf-8")
             body = json.loads(body_str)
             custom_code = body.get("code")
 
-            logger.info(f"{request.method} | {request.url} | {request.state.traceid} | {request_time}")
             logger.info(f"HTTP.code | {response.status_code} | {custom_code}")
 
             async def new_body_iterator():

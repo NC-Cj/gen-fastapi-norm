@@ -21,7 +21,7 @@ async def async_handle_exceptions(fn, *args, **kwargs):
         if Rule.PRINT_ERROR_STACK:
             print_exc()
 
-        if Rule.OUTPUT_INTERNAL_ERROR:
+        if Rule.OUTPUT_UNHANDLED_EXCEPTIONS:
             return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=e.__str__())
 
         return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")
@@ -43,7 +43,7 @@ def sync_handle_exceptions(fn, *args, **kwargs):
         if Rule.PRINT_ERROR_STACK:
             print_exc()
 
-        if Rule.OUTPUT_INTERNAL_ERROR:
+        if Rule.OUTPUT_UNHANDLED_EXCEPTIONS:
             return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=e.__str__())
 
         return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")
