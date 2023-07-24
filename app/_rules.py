@@ -1,12 +1,27 @@
+"""
+:example:
+    @production:
+        class Rule:
+            PRINT_ERROR_STACK = True
+            OUTPUT_UNHANDLED_EXCEPTIONS = False
+            LOGGING_CUSTOM_RESPONSE_CODE = False
+            LOGGING_ALL_REQUESTS = False
+            LOGGING_NON_200_STATUS = False
+
+    @develop:
+        class Rule:
+            PRINT_ERROR_STACK = True
+            OUTPUT_UNHANDLED_EXCEPTIONS = True
+            LOGGING_CUSTOM_RESPONSE_CODE = False
+            LOGGING_ALL_REQUESTS = False
+            LOGGING_NON_200_STATUS = True
+"""
 class Rule:
-    # The exception thrown in the program will print the error stack
-    PRINT_ERROR_STACK = False
-    # Uncaptured service internal exception will be returned in the response
-    OUTPUT_INTERNAL_ERROR = True
-    # Add request headers middleware
-    ADD_LINK_TRACKING_MIDDLEWARE = True
-    # Add request logging middleware
-    ADD_REQUEST_LOGGING_MIDDLEWARE = True
+    PRINT_ERROR_STACK = True
+    OUTPUT_UNHANDLED_EXCEPTIONS = False
+    LOGGING_CUSTOM_RESPONSE_CODE = False
+    LOGGING_ALL_REQUESTS = False
+    LOGGING_NON_200_STATUS = False
 
 
 class ResponseCode:
