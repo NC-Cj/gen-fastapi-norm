@@ -22,16 +22,39 @@ def with_db_session(fn):
 
 
 @with_db_session
+def execute_sql(session: Session, sql):
+    return session.execute(text(sql))
+
+
+@with_db_session
 def simple_query(model,
                  session: Session,
-                 first=False,
-                 includes: Optional[List[InstrumentedAttribute]] = None,
-                 excludes: Optional[List[InstrumentedAttribute]] = None,
-                 **kwargs) -> Union[list, str]:
-    qs = session.query(model).filter_by(**kwargs)
+                 first: bool = False,
+                 includes: List[str] = None,
+                 excludes: List[str] = None,
+                 **kwargs):
+    """
+    Returns query results from the given model.
+
+    :param model: SQLAlchemy model to query.
+    :param session: SQLAlchemy Session object.
+    :param first: If True, returns only the first result. Otherwise, returns all results.
+    :param includes: List of column names to include in the results.
+    :param excludes: List of column names to exclude from the results.
+    :param kwargs: Filter arguments to apply to the query.
+    :return: Query results.
+    """
+    qs = session.query(model)
+
+    if kwargs:
+        qs = qs.filter_by(**kwargs)
+
+    # if includes and excludes:
+    #     raise ValueError("Cannot use both includes and exclude")
 
     if includes:
         qs = qs.options(load_only(*includes))
+
     if excludes:
         qs = qs.options(defer(*excludes))
 
