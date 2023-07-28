@@ -1,11 +1,12 @@
 from functools import wraps
-from typing import Union, List, Optional
+from typing import Union, List, Type
 
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, InstrumentedAttribute, load_only, defer, joinedload
+from sqlalchemy.orm import Session, defer, joinedload, load_only
 
 from ..dao.postgresql import get_session
-from ..pkg.error import DatabaseFailure
+from ..pkg.error import DatabaseFailure, InvalidValueError
 from ..pkg.tools import model_to_dict
 
 
@@ -59,6 +60,41 @@ def simple_query(model,
         qs = qs.options(defer(*excludes))
 
     return qs.first() if first else qs.all()
+
+
+@with_db_session
+def join_query(model,
+               session: Session,
+               limit=None,
+               offset=None,
+               order_by: List[tuple] = None,
+               joins: List[tuple] = None,
+               add_entitys: List[Type] = None,
+               includes: List[str] = None,
+               excludes: List[str] = None,
+               **kwargs):
+    qs = session.query(model)
+
+    for join in joins:
+        qs = qs.join(*join)
+
+    qs = qs.filter_by(**kwargs)
+
+    if add_entitys:
+        for entity in add_entitys:
+            qs = qs.add_entity(entity)
+    if order_by:
+        qs = qs.order_by(*order_by)
+    if limit is not None:
+        qs = qs.limit(limit)
+    if offset is not None:
+        qs = qs.offset(offset)
+    if includes:
+        qs = qs.options(load_only(*includes))
+    if excludes:
+        qs = qs.options(defer(*excludes))
+
+    return qs.all()
 
 
 @with_db_session
