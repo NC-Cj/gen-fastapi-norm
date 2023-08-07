@@ -21,10 +21,11 @@ else:
     )
 
 middlewares.init_middlewares(app)
-
-app.include_router(user.app, prefix=config.prefix)
+middlewares.init_exception_handler(app)
 
 # And so on for other routes and functions in your application
+app.include_router(user.app, prefix=config.prefix)
+
 if __name__ == '__main__':
     import uvicorn
 
