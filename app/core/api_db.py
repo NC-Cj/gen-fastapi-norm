@@ -3,21 +3,22 @@ from typing import Union, List, Type
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, defer, joinedload, load_only
+from sqlalchemy.orm import Session, defer, load_only
 
 from ..dao.postgresql import get_session
-from ..pkg.error import DatabaseFailure, InvalidValueError
+from ..pkg.error import DatabaseFailure
 from ..pkg.tools import model_to_dict
 
 
 def with_db_session(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        with get_session() as session:
-            if kwargs.get("data"):
-                kwargs["data"] = model_to_dict(kwargs.get("data"))
+        if not kwargs.get("session"):
+            with get_session() as session:
+                if kwargs.get("data"):
+                    kwargs["data"] = model_to_dict(kwargs.get("data"))
 
-            return fn(*args, session=session, **kwargs)
+                return fn(*args, session=session, **kwargs)
 
     return wrapper
 
@@ -95,30 +96,6 @@ def join_query(model,
         qs = qs.options(defer(*excludes))
 
     return qs.all()
-
-
-@with_db_session
-def query(model,
-          session: Session,
-          first=False,
-          join_load: Optional[List[InstrumentedAttribute]] = None,
-          includes: Optional[List[InstrumentedAttribute]] = None,
-          excludes: Optional[List[InstrumentedAttribute]] = None,
-          **kwargs) -> Union[list, str]:
-    qs = session.query(model).filter_by(**kwargs)
-
-    if join_load:
-        for item in join_load:
-            qs = qs.options(joinedload(item))
-
-    if includes:
-        qs = qs.options(load_only(*includes))
-
-    if excludes:
-        qs = qs.options(defer(*excludes))
-
-    print(qs)
-    return qs.first() if first else qs.all()
 
 
 @with_db_session
