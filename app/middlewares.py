@@ -1,14 +1,16 @@
 import json
 
 from fastapi import FastAPI, Request
+from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, JSONResponse
 
 from ._rules import Rule
 from .core.api_log import logger
 from .pkg import tools
+from .pkg.error import CustomHTTPException
 
 
 class __CustomMiddleware(BaseHTTPMiddleware):
@@ -68,3 +70,17 @@ def init_middlewares(app: FastAPI):
     )
 
     app.add_middleware(__CustomMiddleware)
+
+
+def init_exception_handler(app: FastAPI):
+    @app.exception_handler(CustomHTTPException)
+    def custom_http_exception_handler(request: Request, exc):
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "code": 1001,
+                "data": None,
+                "request_id": request.state.traceid,
+                "msg": exc.detail
+            }
+        )

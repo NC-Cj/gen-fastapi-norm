@@ -1,18 +1,16 @@
 from traceback import print_exc
 
-from fastapi import HTTPException
-
 from .api_log import logger
 from .._rules import ResponseCode, Rule
 from ..models.response import PublicResponse
-from ..pkg.error import exceptions_to_catch
+from ..pkg.error import exceptions_to_catch, CustomHTTPException
 
 
 async def async_handle_exceptions(fn, *args, **kwargs):
     try:
         resp = await fn(*args, **kwargs)
-    except HTTPException as e:
-        return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.detail)
+    except CustomHTTPException as e:
+        raise CustomHTTPException(e.message) from e
     except Exception as e:
         logger.warning(f'Caught exception: {e}')
         if isinstance(e, tuple(exceptions_to_catch)):
@@ -33,8 +31,8 @@ async def async_handle_exceptions(fn, *args, **kwargs):
 def sync_handle_exceptions(fn, *args, **kwargs):
     try:
         resp = fn(*args, **kwargs)
-    except HTTPException as e:
-        return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.detail)
+    except CustomHTTPException as e:
+        raise CustomHTTPException(e.message) from e
     except Exception as e:
         logger.warning(f'Caught exception: {e}')
         if isinstance(e, tuple(exceptions_to_catch)):
