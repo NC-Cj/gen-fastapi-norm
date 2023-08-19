@@ -1,3 +1,5 @@
+This is the structure of the template .
+
 ```text
 │  .gitignore
 │  LICENSE
