@@ -1,12 +1,9 @@
 import datetime
 import uuid
-from typing import Any
 from typing import List, Type, Union
 
 from pydantic import BaseModel
 from pydantic_sqlalchemy import sqlalchemy_to_pydantic as __sqlalchemy_to_pydantic
-
-from .error import UnsupportedDataTypeError
 
 
 def generate_request_id():
@@ -29,17 +26,6 @@ def generate_request_time():
 
     # Format the time as a string in the desired format
     return now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-
-def model_to_dict(data: Any) -> Any:
-    if isinstance(data, list):
-        return [model_to_dict(item) for item in data]
-    elif isinstance(data, dict):
-        return data
-    elif hasattr(data, 'dict'):
-        return data.dict()
-    else:
-        raise UnsupportedDataTypeError(f'Unsupported data type: {type(data)}')
 
 
 def sqlalchemy_to_pydantic(model: Union[Type, List[Type]],

@@ -1,13 +1,35 @@
 from functools import wraps
-from typing import Union, List, Type
+from typing import Union, List, Type, Any
 
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, defer, load_only
 
 from ..dao.postgresql import get_session
-from ..pkg.error import DatabaseFailure
-from ..pkg.tools import model_to_dict
+from ..pkg.error import DatabaseFailure, UnsupportedDataTypeError
+
+OK = "ok"
+
+
+def query_with_filters(kwargs, model, session):
+    qs = session.query(model)
+    for k, v in kwargs.items():
+        if isinstance(v, (list, tuple)):
+            qs = qs.filter(getattr(model, k).in_(v))
+        else:
+            qs = qs.filter_by(**{k: v})
+
+    return qs
+
+
+def model_to_dict(data: Any) -> Any:
+    if isinstance(data, list):
+        return [model_to_dict(item) for item in data]
+    elif isinstance(data, dict):
+        return data
+    elif hasattr(data, 'dict'):
+        return data.dict()
+    else:
+        raise UnsupportedDataTypeError(f'Unsupported data type: {type(data)}')
 
 
 def with_db_session(fn):
@@ -15,17 +37,30 @@ def with_db_session(fn):
     def wrapper(*args, **kwargs):
         if not kwargs.get("session"):
             with get_session() as session:
-                if kwargs.get("data"):
-                    kwargs["data"] = model_to_dict(kwargs.get("data"))
+                try:
+                    if kwargs.get("data"):
+                        kwargs["data"] = model_to_dict(kwargs.get("data"))
 
-                return fn(*args, session=session, **kwargs)
+                    return fn(*args, session=session, **kwargs)
+                except Exception as e:
+                    session.rollback()
+                    raise DatabaseFailure(e) from e
 
     return wrapper
 
 
 @with_db_session
-def execute_sql(session: Session, sql):
-    return session.execute(text(sql))
+def execute(stmt, commit, session: Session):
+    if commit:
+        session.execute(stmt)
+        session.commit()
+        return OK
+    return session.execute(stmt)
+
+
+@with_db_session
+def execute_sql(sql, commit, session: Session):
+    return execute(text(sql), commit, session)
 
 
 @with_db_session
@@ -103,47 +138,32 @@ def insert(model,
            session: Session,
            data: Union[list, dict],
            refresh=False) -> Union[list, str]:
-    try:
-        if isinstance(data, dict):
-            instance = model(**data)
-            session.add(instance)
-            session.commit()
-        elif isinstance(data, list):
-            instance = [model(**d) for d in data]
-            session.bulk_save_objects(instance)
-            session.commit()
-        else:
-            raise TypeError("argument: data, must be a dict or a list of dicts")
-    except IntegrityError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
+    if isinstance(data, dict):
+        instance = model(**data)
+        session.add(instance)
+        session.commit()
+    elif isinstance(data, list):
+        instance = [model(**d) for d in data]
+        session.bulk_save_objects(instance)
+        session.commit()
     else:
-        if refresh:
-            if not isinstance(instance, list):
-                session.refresh(instance)
-            return instance
-        return "ok"
+        raise TypeError("argument: data, must be a dict or a list of dicts")
+
+    if refresh:
+        if not isinstance(instance, list):
+            session.refresh(instance)
+        return instance
+    return OK
 
 
 @with_db_session
 def delete(model,
            session: Session,
            **kwargs) -> str:
-    try:
-        qs = session.query(model)
-        for k, v in kwargs.items():
-            if isinstance(v, (list, tuple)):
-                qs = qs.filter(getattr(model, k).in_(v))
-            else:
-                qs = qs.filter_by(**{k: v})
-
-        qs.delete(synchronize_session=False)
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
-    else:
-        return "ok"
+    qs = query_with_filters(kwargs, model, session)
+    qs.delete(synchronize_session=False)
+    session.commit()
+    return OK
 
 
 @with_db_session
@@ -154,34 +174,29 @@ def upsert(model,
            update_columns=None,
            refresh=False) -> Union[list, str]:
     instances = []
-    try:
-        if isinstance(data, dict):
-            data = [data]
+    if isinstance(data, dict):
+        data = [data]
 
-        for item in data:
-            unique_filter = {key: item[key] for key in unique_columns}
-            instance = session.query(model).filter_by(**unique_filter).first()
+    for item in data:
+        unique_filter = {key: item[key] for key in unique_columns}
+        instance = session.query(model).filter_by(**unique_filter).first()
 
-            if instance:
-                if update_columns:
-                    update_data = {key: item[key] for key in update_columns}
-                else:
-                    update_data = item
-
-                for key, value in update_data.items():
-                    setattr(instance, key, value)
-
+        if instance:
+            if update_columns:
+                update_data = {key: item[key] for key in update_columns}
             else:
-                instance = model(**item)
-                session.add(instance)
-            instances.append(instance)
+                update_data = item
 
-        session.commit()
-    except IntegrityError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
-    else:
-        return instances if refresh else "ok"
+            for key, value in update_data.items():
+                setattr(instance, key, value)
+
+        else:
+            instance = model(**item)
+            session.add(instance)
+        instances.append(instance)
+
+    session.commit()
+    return instances if refresh else OK
 
 
 @with_db_session
@@ -190,21 +205,12 @@ def update(model,
            data: Union[list, dict],
            refresh=False,
            **kwargs) -> Union[list, str]:
-    try:
-        instance = session.query(model)
-        for k, v in kwargs.items():
-            if isinstance(v, (list, tuple)):
-                instance = instance.filter(getattr(model, k).in_(v))
-            else:
-                instance = instance.filter_by(**{k: v})
+    qs = query_with_filters(kwargs, model, session)
 
-        if isinstance(data, (dict, list)):
-            instance.update(data, synchronize_session=False)
-        else:
-            raise TypeError("argument: data, must be a dict or a list of dicts")
-        session.commit()
-    except IntegrityError as e:
-        session.rollback()
-        raise DatabaseFailure(e) from e
+    if isinstance(data, (dict, list)):
+        qs.update(data, synchronize_session=False)
     else:
-        return instance.all() if refresh else "ok"
+        raise TypeError("argument: data, must be a dict or a list of dicts")
+
+    session.commit()
+    return qs.all() if refresh else OK
