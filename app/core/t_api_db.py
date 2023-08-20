@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from sqlalchemy import and_
 from sqlalchemy.orm import declared_attr, declarative_base, Session
 
-from ..dao.postgresql import my_session
+from ..dao.db import my_session
 from ..pkg.error import DatabaseFailure
 
 OK = "ok"
@@ -54,44 +54,46 @@ class Mixin:
 
     @classmethod
     @auto_session
-    def delete_many(cls,
-                    filter_dict,
-                    refresh: bool = False,
-                    session: Session = None):
-        query = session.query(cls).filter(and_(*[getattr(cls, attr) == value for attr, value in filter_dict.items()]))
-        deleted_instances = query.delete(synchronize_session=False)
+    def delete(cls,
+               refresh: bool = False,
+               session: Session = None,
+               **kwargs):
+        qs = cls.query_with_filters(kwargs, session)
+        deleted_instances = qs.delete(synchronize_session=False)
         session.commit()
         return deleted_instances if refresh else OK
 
     @classmethod
     @auto_session
-    def update_many(cls,
-                    filter_dict,
-                    update_dict,
-                    refresh: bool = False,
-                    session: Session = None, ):
-        query = session.query(cls).filter(and_(*[getattr(cls, attr) == value for attr, value in filter_dict.items()]))
-        instances = query.update(update_dict, synchronize_session=False)
+    def update(cls,
+               data,
+               refresh: bool = False,
+               session: Session = None,
+               **kwargs):
+        qs = cls.query_with_filters(kwargs, session)
+        instances = qs.update(data, synchronize_session=False)
         session.commit()
         return instances if refresh else OK
 
     @classmethod
     @auto_session
     def upsert(cls,
-               filter_dict,
                update_dict,
                refresh: bool = False,
-               session: Session = None):
-        query = session.query(cls).filter(and_(*[getattr(cls, attr) == value for attr, value in filter_dict.items()]))
-        existing_instances = query.all()
+               session: Session = None,
+               **kwargs):
+        qs = cls.query_with_filters(kwargs, session)
+        existing_instances = qs.all()
 
         for instance in existing_instances:
             instance.update(session, update_dict)
 
-        non_existing_values = set(filter_dict.values()) - {getattr(instance, attr)
-                                                           for instance in existing_instances
-                                                           for attr in filter_dict.keys()}
-        new_instances = [cls(**dict(zip(filter_dict.keys(), values)), **update_dict) for values in non_existing_values]
+        non_existing_values = set(kwargs.values()) - {
+            getattr(instance, attr)
+            for instance in existing_instances
+            for attr in kwargs
+        }
+        new_instances = [cls(**dict(zip(kwargs.keys(), values)), **update_dict) for values in non_existing_values]
         session.add_all(new_instances)
         session.commit()
         return existing_instances + new_instances if refresh else OK
@@ -99,10 +101,20 @@ class Mixin:
     @classmethod
     @auto_session
     def filter(cls,
-               filter_dict,
-               session: Session = None):
-        query = session.query(cls).filter(and_(*[getattr(cls, attr) == value for attr, value in filter_dict.items()]))
-        return query.all()
+               first=False,
+               session: Session = None,
+               **kwargs):
+        qs = cls.query_with_filters(kwargs, session)
+        return qs.first() if first else qs.all()
+
+    @classmethod
+    def query_with_filters(cls,
+                           kwargs,
+                           session):
+        # TODO: 只支持=过滤，需要添加更多的过滤条件
+        return session.query(cls).filter(
+            and_(*[getattr(cls, attr) == value for attr, value in kwargs.items()])
+        )
 
     @auto_session
     def save(self,
