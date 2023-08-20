@@ -7,7 +7,13 @@ Here we can reflect the table structure in the database to allow you to continue
 Or you can do it the way you like, and what's clear here is that the table structure is reflected,
 regardless of whether you declare it in the code or not
 """
+from sqlalchemy import Table
 
-from ..dao.postgresql import Base
+from ..dao.postgresql import Base, engine
 
-User = Base.classes.user
+
+# Define table classes for mapping
+class Boss(Base):
+    __table__ = Table('boss', Base.metadata, autoload_with=engine)
+
+    # You can add custom methods based on reflected model classes
