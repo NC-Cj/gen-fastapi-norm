@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app import middlewares
 from app.env import env
-from app.routes.v1 import user
+from app.routes.v1 import job
 from initialization import go_init
 
 config = go_init()
@@ -24,7 +24,7 @@ middlewares.init_middlewares(app)
 middlewares.init_exception_handler(app)
 
 # And so on for other routes and functions in your application
-app.include_router(user.app, prefix=config.prefix)
+app.include_router(job.app, prefix=config.prefix)
 
 if __name__ == '__main__':
     import uvicorn

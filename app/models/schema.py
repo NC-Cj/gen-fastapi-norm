@@ -9,7 +9,8 @@ regardless of whether you declare it in the code or not
 """
 from sqlalchemy import Table
 
-from ..dao.postgresql import Base, engine
+from ..core.t_api_db import Base
+from ..dao.db import engine
 
 
 # Define table classes for mapping
