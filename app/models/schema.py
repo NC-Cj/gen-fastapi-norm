@@ -9,7 +9,7 @@ regardless of whether you declare it in the code or not
 """
 from sqlalchemy import Table
 
-from ..core.t_api_db import Base
+from ..core.api_db import Base
 from ..dao.db import engine
 
 

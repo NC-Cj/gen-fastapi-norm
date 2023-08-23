@@ -1,3 +1,4 @@
+from ..core.converter_type import DictConverter
 from ..models import schema
 
 
@@ -13,7 +14,7 @@ def query_jobs(company_name,
         }.items()
         if v is not None
     }
-    return schema.Boss.filter(**expression)
+    return schema.Boss.filter(result_converter=DictConverter, **expression)
 
 
 def create_job(data):
