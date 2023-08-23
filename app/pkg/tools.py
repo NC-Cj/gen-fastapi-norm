@@ -1,9 +1,5 @@
 import datetime
 import uuid
-from typing import List, Type, Union
-
-from pydantic import BaseModel
-from pydantic_sqlalchemy import sqlalchemy_to_pydantic as __sqlalchemy_to_pydantic
 
 
 def generate_request_id():
@@ -26,12 +22,3 @@ def generate_request_time():
 
     # Format the time as a string in the desired format
     return now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-
-def sqlalchemy_to_pydantic(model: Union[Type, List[Type]],
-                           exclude: List[str] = []) -> Union[List[BaseModel], BaseModel]:
-    if isinstance(model, list):
-        result = [__sqlalchemy_to_pydantic(type(item), exclude=exclude).parse_obj(item.__dict__) for item in model]
-        return result
-
-    return __sqlalchemy_to_pydantic(type(model), exclude=exclude).parse_obj(model.__dict__)
