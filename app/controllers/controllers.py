@@ -3,7 +3,7 @@ from functools import wraps
 from traceback import print_exc
 
 from .._rules import Rule, ResponseCode
-from ..core.api_log import logger
+from app.core.logger.log_setup import logger
 from ..models.response import PublicResponse
 from ..pkg.error import CustomHTTPException, exceptions_to_catch
 

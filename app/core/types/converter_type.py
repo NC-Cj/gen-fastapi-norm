@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+db_result = "ok"
+
 
 class ResultConverter(ABC):
     @abstractmethod

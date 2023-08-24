@@ -8,14 +8,16 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse, JSONResponse
 
 from ._rules import Rule
-from .core.api_log import logger
+from .core.logger.log_setup import logger
 from .pkg import tools
 from .pkg.error import CustomHTTPException
 
 
 class __CustomMiddleware(BaseHTTPMiddleware):
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self,
+                       request: Request,
+                       call_next):
         if request.url.path in ["/favicon.ico", "/api/redoc", "/api/docs", "/api/openapi.json"]:
             return await call_next(request)
 
@@ -33,8 +35,10 @@ class __CustomMiddleware(BaseHTTPMiddleware):
 
         if Rule.LOGGING_NON_200_STATUS and response.status_code != 200:
             if Rule.LOGGING_ALL_REQUESTS:
-                logger.warning("You have enabled recording of global requests, and any requests will be recorded  \n "
-                               "`LOGGING_ALL_REQUESTS` and `LOGGING_NON_200_STATUS` should not be opened simultaneously")
+                logger.warning(
+                    "You have enabled recording of global requests, and any requests will be recorded  \n "
+                    "`LOGGING_ALL_REQUESTS` and `LOGGING_NON_200_STATUS` should not be opened simultaneously"
+                    )
             else:
                 logger.info(f"{request.method} | {request.url.path} | {response.status_code}")
 
@@ -74,7 +78,8 @@ def init_middlewares(app: FastAPI):
 
 def init_exception_handler(app: FastAPI):
     @app.exception_handler(CustomHTTPException)
-    def custom_http_exception_handler(request: Request, exc):
+    def custom_http_exception_handler(request: Request,
+                                      exc):
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
