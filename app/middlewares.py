@@ -21,7 +21,7 @@ class __CustomMiddleware(BaseHTTPMiddleware):
         if request.url.path in ["/favicon.ico", "/api/redoc", "/api/docs", "/api/openapi.json"]:
             return await call_next(request)
 
-        request_id = tools.generate_request_id()
+        request_id = request.headers.get("X-Request-ID") or tools.generate_request_id()
         request_time = tools.generate_request_time()
 
         request.state.traceid = request_id
@@ -38,7 +38,7 @@ class __CustomMiddleware(BaseHTTPMiddleware):
                 logger.warning(
                     "You have enabled recording of global requests, and any requests will be recorded  \n "
                     "`LOGGING_ALL_REQUESTS` and `LOGGING_NON_200_STATUS` should not be opened simultaneously"
-                    )
+                )
             else:
                 logger.info(f"{request.method} | {request.url.path} | {response.status_code}")
 
