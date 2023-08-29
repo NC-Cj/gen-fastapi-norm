@@ -2,7 +2,7 @@ import random
 import string
 from unittest import TestCase
 
-from app.core import api_db
+from app.utils import api_db
 from app.models import schema
 
 

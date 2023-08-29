@@ -1,7 +1,7 @@
 import requests
 
 from ..logger.log_setup import logger
-from ...pkg.error import CustomHTTPException
+from app.utils.errors.error import CustomHTTPException
 
 
 def send_traced_http_request(traceid,

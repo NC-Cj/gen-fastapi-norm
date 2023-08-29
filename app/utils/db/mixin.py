@@ -1,7 +1,7 @@
 from sqlalchemy.orm import declared_attr, Session
 
 from .session import auto_session
-from ...core.types.converter_type import ResultConverter, db_result
+from ...utils.types.converter_type import ResultConverter, db_result
 
 
 class Mixin:

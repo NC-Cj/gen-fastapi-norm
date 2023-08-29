@@ -8,9 +8,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse, JSONResponse
 
 from ._rules import Rule
-from .core.logger.log_setup import logger
-from .pkg import tools
-from .pkg.error import CustomHTTPException
+from .utils.logger.log_setup import logger
+from .utils.tools import tools
+from app.utils.errors.error import CustomHTTPException
 
 
 class __CustomMiddleware(BaseHTTPMiddleware):

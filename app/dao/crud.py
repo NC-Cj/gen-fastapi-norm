@@ -1,4 +1,4 @@
-from ..core.types.converter_type import DictConverter
+from ..utils.types.converter_type import DictConverter
 from ..models import schema
 
 

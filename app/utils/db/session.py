@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 
 from ...dao.db import my_session
-from ...pkg.error import DatabaseFailure
+from app.utils.errors.error import DatabaseFailure
 
 
 @contextmanager

@@ -1,4 +1,4 @@
-from app.core.logger.log_setup import logger
+from app.utils.logger.log_setup import logger
 
 
 def __test_log_output():
