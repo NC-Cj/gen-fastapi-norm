@@ -3,9 +3,9 @@ from functools import wraps
 from traceback import print_exc
 
 from .._rules import Rule, ResponseCode
-from app.utils.logger.log_setup import logger
 from ..models.response import PublicResponse
-from app.utils.errors.error import CustomHTTPException, exceptions_to_catch
+from ..utils.errors.error import CustomHTTPException, exceptions_to_catch
+from ..utils.logger.log_setup import logger
 
 
 def catch_controller(fn):

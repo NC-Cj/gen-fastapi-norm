@@ -1,5 +1,5 @@
-from ..utils.types.converter_type import DictConverter
 from ..models import schema
+from ..utils.types.converter_type import DictConverter
 
 
 def query_jobs(company_name,
