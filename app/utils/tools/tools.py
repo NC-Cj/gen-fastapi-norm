@@ -1,6 +1,10 @@
 import uuid
 from datetime import datetime
-from zoneinfo import ZoneInfo
+
+try:
+    import zoneinfo
+except ImportError:
+    from backports import zoneinfo
 
 
 def generate_request_id():
@@ -15,7 +19,7 @@ def generate_request_id():
 
 
 def generate_request_time(timezone="Asia/Shanghai"):
-    now = datetime.now(ZoneInfo(timezone))
+    now = datetime.now(zoneinfo.ZoneInfo(timezone))
     # Format the time as a string in the desired format
     return now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -46,7 +50,7 @@ def get_current_time(time_format='%Y-%m-%d %H:%M:%S',
     current_time = datetime.now()
 
     if timezone:
-        current_time = datetime.now(ZoneInfo(timezone))
+        current_time = datetime.now(zoneinfo.ZoneInfo(timezone))
 
     formatted_time = current_time.strftime(time_format)
 
