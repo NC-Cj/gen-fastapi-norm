@@ -139,14 +139,3 @@ class Mixin:
             column.name: getattr(self, column.name)
             for column in self.__table__.columns
         }
-
-    # @auto_session
-    # def query(self,
-    #           result_converter: ResultConverter = None,
-    #           session: Session = None):
-    #     print(session)
-    #
-    #     result = session.query(self).all()
-    #     print(result)
-    #
-    #     return result_converter.convert(result) if result_converter else result

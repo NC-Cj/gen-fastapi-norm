@@ -1,4 +1,4 @@
-from sqlalchemy import text
+from sqlalchemy import text, Executable
 from sqlalchemy.orm import declarative_base, Session
 
 from .mixin import Mixin
@@ -28,7 +28,15 @@ def execute_raw_sql(sql: str,
 
 @auto_session
 def execute_custom_func(func_name: str,
-                        params=None,
+                        params: dict = None,
                         session: Session = None):
     statement = text(f"SELECT {func_name}({', '.join(params)})")
     return session.execute(statement)
+
+
+@auto_session
+def conn_execute(statement: Executable,
+                 params: dict = None,
+                 session: Session = None):
+    conn = session.connection()
+    return conn.execute(statement, params)
