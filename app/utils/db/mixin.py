@@ -1,4 +1,4 @@
-from sqlalchemy.orm import declared_attr, Session
+from sqlalchemy.orm import declared_attr, Session, joinedload, selectinload, aliased
 
 from .session import auto_session
 from ...utils.types.converter_type import ResultConverter, db_result
@@ -39,10 +39,78 @@ class Mixin:
 
             res = YourClass.filter(first=True, id=1, name=variable)
         """
+        cls
         qs = cls.simple_query_with_filters(kwargs, session)
         result = qs.first() if first else qs.all()
 
         return result_converter.convert(result) if result_converter else result
+
+    @classmethod
+    @auto_session
+    def join_query(cls,
+                   related_cls,
+                   join_attr,
+                   join_type='inner',
+                   fields=None,
+                   session: Session = None,
+                   **kwargs):
+        """
+        Perform a join query with another class.
+
+        Args:
+            related_cls: The related class to join with.
+            join_attr: The attribute to join on.
+            join_type: The type of join, e.g. 'inner', 'left', 'right', 'outer'.
+            fields: The fields to select from the related class.
+            session: The SQLAlchemy session.
+            **kwargs: Additional filter conditions.
+
+        eg::
+            fields = [User.id, User.username, Order.id, Product.name]
+
+            # Join User and Order tables using left join
+            query = Mixin.join_query(Order, 'user_id', join_type='left', fields=fields)
+
+            # Join Product table using right join
+            query = Mixin.join_query(Product, 'name', join_type='right', fields=fields, session=query.session)
+
+            # Execute the query and retrieve the results
+            results = query.all()
+
+        Returns:
+            The joined query result.
+        """
+        if fields is None:
+            fields = [related_cls]
+
+        join_method = {
+            'inner': joinedload,
+            'left': joinedload,
+            'right': joinedload,
+            'outer': joinedload
+        }.get(join_type, joinedload)
+
+        # Create aliases for related_cls to perform multiple joins
+        aliases = [aliased(related_cls) for _ in range(len(fields) - 1)]
+
+        qs = session.query(cls)
+
+        # Perform the joins
+        for i, alias in enumerate(aliases):
+            join_condition = getattr(cls, join_attr) == getattr(alias, join_attr)
+            if join_type == 'right':
+                qs = qs.join(alias, join_condition, isouter=True)
+            elif i == 0:
+                qs = qs.join(alias, join_condition)
+            else:
+                qs = qs.join(alias, join_condition, isouter=(join_type == 'outer'))
+
+        # Apply filter conditions
+        for attr, value in kwargs.items():
+            if isinstance(value, (list, tuple)):
+                qs = qs.filter(getattr(cls, attr).in_(value))
+
+        return qs
 
     @classmethod
     @auto_session
