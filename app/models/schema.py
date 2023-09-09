@@ -9,8 +9,8 @@ regardless of whether you declare it in the code or not
 """
 from sqlalchemy import Table
 
-from app.utils.db.db_helpers import Base
 from ..dao.db import engine
+from ..utils.db.db_helpers import Base
 
 
 # Define table classes for mapping
