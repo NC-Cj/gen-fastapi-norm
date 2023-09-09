@@ -39,7 +39,6 @@ class Mixin:
 
             res = YourClass.filter(first=True, id=1, name=variable)
         """
-        cls
         qs = cls.simple_query_with_filters(kwargs, session)
         result = qs.first() if first else qs.all()
 
@@ -127,13 +126,14 @@ class Mixin:
             res = YourClass.save_many(data)
         """
         instances = list(data)
-        session.bulk_save_objects(data)
+        session.add_all(data)
         session.commit()
 
-        if refresh:
-            session.refresh(instances)
-
-        return instances if refresh else db_result
+        return (
+            [instance.to_dict() for instance in instances]
+            if refresh
+            else db_result
+        )
 
     @classmethod
     @auto_session
