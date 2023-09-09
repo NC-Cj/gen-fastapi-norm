@@ -40,7 +40,8 @@ def catch_controller(fn):
             print_exc()
 
         if isinstance(e, tuple(exceptions_to_catch)):
-            return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=e.message)
+            msg = str(e.message) if isinstance(e.message, Exception) else e.message
+            return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=msg)
 
         if Rule.OUTPUT_UNHANDLED_EXCEPTIONS:
             return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=str(e))
