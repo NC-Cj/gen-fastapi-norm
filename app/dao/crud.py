@@ -1,4 +1,5 @@
 from ..models import schema
+from ..utils.tools import tools
 from ..utils.types.converter_type import DictConverter
 
 
@@ -18,19 +19,12 @@ def query_jobs(company_name,
 
 
 def create_job(data):
-    return schema.Boss(**data.dict()).save(refresh=True)
-    # data = [
-    #     schema.Boss(company_name="tiam1", job_name="华为", salary="华为", address="华为"),
-    #     schema.Boss(company_name="tiam2", job_name="华为", salary="华为", address="华为"),
-    #     schema.Boss(company_name="tiam3", job_name="华为", salary="华为", address="华为")
-    # ]
-    # return schema.Boss.save_many(data=data)
-    # return schema.Boss(
-    #     company_name="tiam",
-    #     job_name="华为",
-    #     salary="华为",
-    #     address="华为"
-    # ).save()
+    # if you an instance
+    # return schema.Boss(**data.dict()).save(refresh=True)
+
+    # if you multiple instances
+    orm = tools.body_to_orm_objects(schema.Boss, data)
+    return schema.Boss.save_many(data=orm, refresh=True)
 
 
 def update_job(job_id,

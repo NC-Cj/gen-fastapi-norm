@@ -15,7 +15,7 @@ def query_jobs(company_name: str = None,
 
 
 @app.post('/jobs', response_model=PublicResponse)
-def create_job(job_data: Job):
+def create_job(job_data: list[Job]):
     return job.create_job(job_data)
 
 
