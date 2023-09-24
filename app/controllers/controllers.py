@@ -1,6 +1,6 @@
 import asyncio
+import traceback
 from functools import wraps
-from traceback import print_exc
 
 from .._rules import Rule, ResponseCode
 from ..models.response import PublicResponse
