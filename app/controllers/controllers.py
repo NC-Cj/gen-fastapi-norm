@@ -37,14 +37,15 @@ def catch_controller(fn):
 
     def handle_exception(e):
         if Rule.PRINT_ERROR_STACK:
-            print_exc()
+            traceback.print_exc()
 
         if isinstance(e, tuple(exceptions_to_catch)):
             msg = str(e.message) if isinstance(e.message, Exception) else e.message
             return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=msg)
 
         if Rule.OUTPUT_UNHANDLED_EXCEPTIONS:
-            return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=str(e))
+            traceback_info = traceback.format_exc()
+            return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg=traceback_info)
 
         return PublicResponse(code=ResponseCode.INTERNAL_ERROR, data=None, msg="service busy")
 
