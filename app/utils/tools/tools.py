@@ -57,3 +57,15 @@ def get_current_time(time_format='%Y-%m-%d %H:%M:%S',
         formatted_time = formatted_time.split(' ')[0]  # 只保留日期部分
 
     return formatted_time
+
+
+def datetime_to_string(dt,
+                       format_str='%Y-%m-%d %H:%M:%S') -> str:
+    """Convert time to a string"""
+    return dt.strftime(format_str)
+
+
+def string_to_datetime(string,
+                       format_str='%Y-%m-%d %H:%M:%S') -> datetime:
+    """Convert string to time"""
+    return datetime.strptime(string, format_str)
