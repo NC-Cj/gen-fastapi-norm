@@ -4,28 +4,33 @@ from app import middlewares
 from app.env import env
 from app.routes.v1 import job
 
-prefix = "/api"
+_environment = env.bool("PROD")
+_host = env.str("HOST")
+_port = env.int("PORT")
 
-"""
-Usually your project goes into production, and I don't recommend external access to your documentation
-center unless you have specific requests
-"""
-if env.bool('PROD'):
-    app = FastAPI(docs_url=None, redoc_url=None)
-else:
-    app = FastAPI(
-        version='1.2.0',
-        openapi_url=f'{prefix}/openapi.json',
-        docs_url=f'{prefix}/docs'
-    )
+_prefix = "/api"
+_project_name = "gen-fastapi-norm"
+_version = "2.0"
+
+# Prohibit the opening of document centers in production environments
+_openapi_url = None if _environment else f"{_prefix}/openapi.json"
+_docs_url = None if _environment else f"{_prefix}/docs"
+_redoc_url = None
+
+app = FastAPI(
+    title=_project_name,
+    version=_version,
+    openapi_url=_openapi_url,
+    docs_url=_docs_url,
+    redoc_url=_redoc_url
+)
 
 middlewares.init_middlewares(app)
 middlewares.init_exception_handler(app)
 
-# And so on for other routes and functions in your application
-app.include_router(job.app, prefix=prefix)
+app.include_router(job.app, prefix=_prefix)
 
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=9000)
+    uvicorn.run("main:app", host=_host, port=_port)
