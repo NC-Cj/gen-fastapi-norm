@@ -74,7 +74,7 @@ class Mixin:
             query = Mixin.join_query(Product, 'name', join_type='right', fields=fields, session=query.session)
 
             # Execute the query and retrieve the results
-            results = query.all()
+            result = query.all()
 
         Returns:
             The joined query result.

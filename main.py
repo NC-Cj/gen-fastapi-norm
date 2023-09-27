@@ -2,14 +2,15 @@ from fastapi import FastAPI
 
 from app import middlewares
 from app.env import env
+from app.project_rules import GlobalProjectResponses
 from app.routes.v1 import job
 
 _environment = env.bool("PROD")
 _host = env.str("HOST")
 _port = env.int("PORT")
 
+_project_name = "gen-fastapi-norm-template"
 _prefix = "/api"
-_project_name = "gen-fastapi-norm"
 _version = "2.0"
 
 # Prohibit the opening of document centers in production environments
@@ -28,7 +29,8 @@ app = FastAPI(
 middlewares.init_middlewares(app)
 middlewares.init_exception_handler(app)
 
-app.include_router(job.app, prefix=_prefix)
+app.include_router(job.app, prefix=_prefix, responses=GlobalProjectResponses)
+# app.include_router(you_routes.app, prefix=_prefix, responses=GlobalProjectResponses)
 
 if __name__ == '__main__':
     import uvicorn
