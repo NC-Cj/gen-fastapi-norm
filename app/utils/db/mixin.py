@@ -1,4 +1,4 @@
-from sqlalchemy.orm import declared_attr, Session, joinedload, selectinload, aliased
+from sqlalchemy.orm import declared_attr, Session, aliased
 
 from .session import auto_session
 from ...utils.types.converter_type import ResultConverter, db_result
@@ -81,13 +81,6 @@ class Mixin:
         """
         if fields is None:
             fields = [related_cls]
-
-        join_method = {
-            'inner': joinedload,
-            'left': joinedload,
-            'right': joinedload,
-            'outer': joinedload
-        }.get(join_type, joinedload)
 
         # Create aliases for related_cls to perform multiple joins
         aliases = [aliased(related_cls) for _ in range(len(fields) - 1)]
