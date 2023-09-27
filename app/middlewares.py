@@ -7,10 +7,10 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse, JSONResponse
 
-from ._rules import Rule
+from .project_rules import Rule
+from .utils.errors.error import CustomHTTPException
 from .utils.logger.log_setup import logger
 from .utils.tools import tools
-from app.utils.errors.error import CustomHTTPException
 
 
 class __CustomMiddleware(BaseHTTPMiddleware):

@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.utils.errors.error import DatabaseFailure
+from ..errors.error import DatabaseException
 from ...dao.db import my_session
 
 
@@ -24,6 +24,6 @@ def auto_session(fn):
                     return fn(*args, session=session, **kwargs)
                 except (SQLAlchemyError, Exception) as e:
                     session.rollback()
-                    raise DatabaseFailure(e) from e
+                    raise DatabaseException(e) from e
 
     return wrapper

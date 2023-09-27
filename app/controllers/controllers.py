@@ -2,15 +2,16 @@ import asyncio
 import traceback
 from functools import wraps
 
-from .._rules import Rule, ResponseCode
 from ..models.response import PublicResponse
-from ..utils.errors.error import CustomHTTPException, exceptions_to_catch
+from ..project_rules import Rule, ResponseCode
+from ..utils.errors.error import CustomHTTPException, global_exceptions_to_catch
 from ..utils.logger.log_setup import logger
 
 
 def catch_controller(fn):
     @wraps(fn)
-    async def async_wrapper(*args, **kwargs):
+    async def async_wrapper(*args,
+                            **kwargs):
         try:
             resp = await fn(*args, **kwargs)
         except CustomHTTPException as e:
@@ -23,7 +24,8 @@ def catch_controller(fn):
             return PublicResponse(code=ResponseCode.SUCCESS, data=resp, msg="success")
 
     @wraps(fn)
-    def sync_wrapper(*args, **kwargs):
+    def sync_wrapper(*args,
+                     **kwargs):
         try:
             resp = fn(*args, **kwargs)
         except CustomHTTPException as e:
@@ -39,7 +41,7 @@ def catch_controller(fn):
         if Rule.PRINT_ERROR_STACK:
             traceback.print_exc()
 
-        if isinstance(e, tuple(exceptions_to_catch)):
+        if isinstance(e, tuple(global_exceptions_to_catch)):
             msg = str(e.message) if isinstance(e.message, Exception) else e.message
             return PublicResponse(code=ResponseCode.FAILURE, data=None, msg=msg)
 

@@ -1,6 +1,6 @@
 import requests
 
-from app.utils.errors.error import CustomHTTPException
+from ..errors.error import CustomHTTPException
 from ..logger.log_setup import logger
 
 
