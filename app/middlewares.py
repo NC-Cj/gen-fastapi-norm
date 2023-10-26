@@ -1,91 +1,74 @@
-import json
+import traceback
 
-from fastapi import FastAPI, Request
-from fastapi import status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import StreamingResponse, JSONResponse
+from starlette.responses import JSONResponse
 
-from .project_rules import Rule
-from .utils.errors.error import CustomHTTPException
+from .project_rules import Rule, ResponseCode
+from .utils.errors.error import global_exceptions_to_catch
 from .utils.logger.log_setup import logger
 from .utils.tools import tools
 
 
-class __CustomMiddleware(BaseHTTPMiddleware):
-
+class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self,
                        request: Request,
                        call_next):
-        if request.url.path in ["/favicon.ico", "/api/redoc", "/api/docs", "/api/openapi.json"]:
-            return await call_next(request)
+        request.state.request_id = request.headers.get("X-Request-ID") or tools.generate_request_id()
+        request.state.request_time = tools.generate_request_time()
+        return await call_next(request)
 
-        request_id = request.headers.get("X-Request-ID") or tools.generate_request_id()
-        request_time = tools.generate_request_time()
 
-        request.state.traceid = request_id
+class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self,
+                       request: Request,
+                       call_next):
+        try:
+            response = await call_next(request)
+        except HTTPException as exc:
+            error_response = {
+                "code": ResponseCode.FAILURE,
+                "data": None,
+                "request_id": request.state.request_id,
+                "msg": exc.detail
+            }
+            response = JSONResponse(status_code=200, content=error_response)
+        except Exception as exc:
+            if Rule.PRINT_ERROR_STACK:
+                traceback.print_exc()
 
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Request-Time"] = request_time
-
-        if Rule.LOGGING_ALL_REQUESTS:
-            logger.info(f"{request.method} | {request.url} | {request.state.traceid} | {request_time}")
-
-        if Rule.LOGGING_NON_200_STATUS and response.status_code != 200:
-            if Rule.LOGGING_ALL_REQUESTS:
-                logger.warning(
-                    "You have enabled recording of global requests, and any requests will be recorded  \n "
-                    "`LOGGING_ALL_REQUESTS` and `LOGGING_NON_200_STATUS` should not be opened simultaneously"
-                )
+            if isinstance(exc, tuple(global_exceptions_to_catch)):
+                error_response = {
+                    "code": ResponseCode.FAILURE,
+                    "data": None,
+                    "request_id": request.state.request_id,
+                    "msg": exc.message
+                }
             else:
-                logger.info(f"{request.method} | {request.url.path} | {response.status_code}")
+                if Rule.OUTPUT_ERROR_STACK:
+                    traceback_info = traceback.format_exc()
+                    msg = traceback_info
+                else:
+                    msg = "service busy"
 
-        if Rule.LOGGING_CUSTOM_RESPONSE_CODE:
-            body_bytes = b"".join([chunk async for chunk in response.body_iterator])
-            body_str = body_bytes.decode("utf-8")
-            body = json.loads(body_str)
-            custom_code = body.get("code")
-
-            logger.info(f"HTTP.code | {response.status_code} | {custom_code}")
-
-            async def new_body_iterator():
-                yield body_bytes
-
-            response = StreamingResponse(new_body_iterator(), headers=response.headers)
+                error_response = {
+                    "code": ResponseCode.INTERNAL_ERROR,
+                    "data": None,
+                    "request_id": request.state.request_id,
+                    "msg": msg
+                }
+            response = JSONResponse(status_code=200, content=error_response)
 
         return response
 
 
-def init_middlewares(app: FastAPI):
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self,
+                       request: Request,
+                       call_next):
+        # 记录请求信息，如请求方法、URL、请求体等
+        request_id = request.state.request_id
+        request_time = request.state.request_time
+        logger.info(f"{request.method} | {request.url} | {request_id} | {request_time}")
 
-    # Add trusted host middleware
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=["*"],
-    )
-
-    app.add_middleware(__CustomMiddleware)
-
-
-def init_exception_handler(app: FastAPI):
-    @app.exception_handler(CustomHTTPException)
-    def custom_http_exception_handler(request: Request,
-                                      exc):
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "code": 1001,
-                "data": None,
-                "request_id": request.state.traceid,
-                "msg": exc.detail
-            }
-        )
+        return await call_next(request)

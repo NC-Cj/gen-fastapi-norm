@@ -22,6 +22,7 @@ from app.models.response import PublicResponse
 
 class Rule:
     PRINT_ERROR_STACK = True
+    OUTPUT_ERROR_STACK = True
     OUTPUT_UNHANDLED_EXCEPTIONS = True
     LOGGING_CUSTOM_RESPONSE_CODE = False
     LOGGING_ALL_REQUESTS = False
