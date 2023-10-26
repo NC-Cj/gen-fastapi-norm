@@ -66,9 +66,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self,
                        request: Request,
                        call_next):
-        # 记录请求信息，如请求方法、URL、请求体等
-        request_id = request.state.request_id
-        request_time = request.state.request_time
+        try:
+            request_id = request.state.request_id
+            request_time = request.state.request_time
+        except AttributeError:
+            request_id = "undefined"
+            request_time = "undefined"
+
         logger.info(f"{request.method} | {request.url} | {request_id} | {request_time}")
 
         return await call_next(request)
