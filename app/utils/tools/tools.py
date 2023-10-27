@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Union
 
 import pytz
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ def generate_request_time(timezone="Asia/Shanghai"):
 
 
 def body_to_orm_objects(orm_model,
-                        model: BaseModel | list[BaseModel],
+                        model: Union[BaseModel, list[BaseModel]],
                         field_mapping=None):
     if field_mapping is None:
         field_mapping = {}

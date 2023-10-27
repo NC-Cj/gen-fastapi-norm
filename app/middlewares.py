@@ -4,10 +4,10 @@ from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from .project_rules import Rule, ResponseCode
-from .utils.errors.error import global_exceptions_to_catch
-from .utils.logger.log_setup import logger
-from .utils.tools import tools
+from app.project_rules import ResponseCode, Rule
+from app.utils.errors.error import global_exceptions_to_catch
+from app.utils.logger.log_setup import logger
+from app.utils.tools import tools
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -16,7 +16,11 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                        call_next):
         request.state.request_id = request.headers.get("X-Request-ID") or tools.generate_request_id()
         request.state.request_time = tools.generate_request_time()
-        return await call_next(request)
+
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request.state.request_id
+        response.headers["X-Request-Time"] = request.state.request_time
+        return response
 
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
@@ -57,6 +61,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                     "request_id": request.state.request_id,
                     "msg": msg
                 }
+                print(error_response)
             response = JSONResponse(status_code=200, content=error_response)
 
         return response

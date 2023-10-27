@@ -1,16 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.middlewares import RequestIDMiddleware, ExceptionHandlerMiddleware, LoggingMiddleware
+from app.middlewares import LoggingMiddleware, ExceptionHandlerMiddleware, RequestIDMiddleware
+from app.project_rules import GlobalProjectResponses
+from app.routes.job.api import v1
 
 
 def get_application():
     _app = FastAPI(
-        title=_project_name,
-        version=_version,
-        openapi_url=_openapi_url,
-        docs_url=_docs_url,
-        redoc_url=_redoc_url
+        # title=_project_name,
+        # version=_version,
+        # openapi_url=_openapi_url,
+        # docs_url=_docs_url,
+        # redoc_url=_redoc_url
     )
 
     _app.add_middleware(
@@ -21,14 +23,15 @@ def get_application():
         allow_headers=["*"],
     )
 
-    _app.add_middleware(RequestIDMiddleware)
-    _app.add_middleware(ExceptionHandlerMiddleware)
     _app.add_middleware(LoggingMiddleware)
+    _app.add_middleware(ExceptionHandlerMiddleware)
+    _app.add_middleware(RequestIDMiddleware)
 
     return _app
 
 
 app = get_application()
+app.include_router(v1.router, responses=GlobalProjectResponses)
 
 # _environment = env.bool("PROD")
 
