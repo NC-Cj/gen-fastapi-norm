@@ -11,10 +11,14 @@ from sqlalchemy import Table
 
 from ..dao.db import engine
 from ..utils.db.db_helpers import Base
+from ..utils.db.mixin import Mixin
+
+
+# from ..utils.db.db_helpers import Base
 
 
 # Define table classes for mapping
-class Boss(Base):
+class Boss(Base, Mixin):
     __table__ = Table('boss', Base.metadata, autoload_with=engine)
 
     # You can add custom methods based on reflected model classes
