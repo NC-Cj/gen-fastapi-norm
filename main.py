@@ -32,6 +32,9 @@ def get_application():
 
 app = get_application()
 app.include_router(v1.router, responses=GlobalProjectResponses)
+# --app-dir main:app --host 0.0.0.0 --port 9000 --env-file .env --log-level warning --reload
+# --app-dir main:app --host 0.0.0.0 --port 9000 --env-file .env --reload
+
 
 # _environment = env.bool("PROD")
 
