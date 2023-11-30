@@ -1,4 +1,5 @@
 from app.models import schema
+from app.utils.db.mixin import Mixin
 from app.utils.types.converter_type import DictConverter
 
 
@@ -18,4 +19,6 @@ async def get_job_list(company_name,
 
 
 async def add_job(data):
+    schema.Boss().save(data)
+    schema.Boss().save_many()
     return schema.Boss(**data.dict()).save(refresh=True)
