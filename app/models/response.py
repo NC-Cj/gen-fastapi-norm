@@ -32,7 +32,7 @@ class PublicResponse(BaseModel):
         msg (Optional[Any]): The response message (default: None).
     """
 
-    code: ResponseCode
+    code: int
     data: Optional[Any] = None
     msg: Optional[Any] = None
 
@@ -50,7 +50,7 @@ class AbnormalResponse(BaseModel):
         request_id (Optional[str]): The request ID (default: None).
     """
 
-    code: ResponseCode
+    code: int
     data: Optional[Any] = None
     msg: Optional[Any] = None
     request_id: Optional[str] = None
