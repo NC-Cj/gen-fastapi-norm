@@ -1,8 +1,7 @@
 import asyncio
 from functools import wraps
 
-from app.models.response import PublicResponse
-from app.project_rules import ResponseCode
+from app.models.response import PublicResponse, ResponseCode
 
 
 def rc(fn):
