@@ -4,7 +4,8 @@ from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from app.project_rules import ResponseCode, Rule
+from app.models.response import ResponseCode, AbnormalResponse
+from app.project_rules import Rule
 from app.utils.errors.error import global_exceptions_to_catch
 from app.utils.logger.log_setup import logger
 from app.utils.tools import tools
@@ -30,24 +31,24 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
         except HTTPException as exc:
-            error_response = {
-                "code": ResponseCode.FAILURE,
-                "data": None,
-                "request_id": request.state.request_id,
-                "msg": exc.detail
-            }
+            error_response = AbnormalResponse(
+                code=ResponseCode.FAILURE,
+                data=None,
+                msg=exc.detail,
+                request_id=request.state.request_id
+            ).model_dump()
             response = JSONResponse(status_code=200, content=error_response)
         except Exception as exc:
             if Rule.PRINT_ERROR_STACK:
                 traceback.print_exc()
 
             if isinstance(exc, tuple(global_exceptions_to_catch)):
-                error_response = {
-                    "code": ResponseCode.FAILURE,
-                    "data": None,
-                    "request_id": request.state.request_id,
-                    "msg": exc.message
-                }
+                error_response = AbnormalResponse(
+                    code=ResponseCode.FAILURE,
+                    data=None,
+                    msg=exc.message,
+                    request_id=request.state.request_id
+                ).model_dump()
             else:
                 if Rule.OUTPUT_ERROR_STACK:
                     traceback_info = traceback.format_exc()
@@ -55,12 +56,12 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                 else:
                     msg = "service busy"
 
-                error_response = {
-                    "code": ResponseCode.INTERNAL_ERROR,
-                    "data": None,
-                    "request_id": request.state.request_id,
-                    "msg": msg
-                }
+                error_response = AbnormalResponse(
+                    code=ResponseCode.INTERNAL_ERROR,
+                    data=None,
+                    msg=msg,
+                    request_id=request.state.request_id
+                ).model_dump()
                 print(error_response)
             response = JSONResponse(status_code=200, content=error_response)
 
