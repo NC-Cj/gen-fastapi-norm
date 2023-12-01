@@ -1,14 +1,36 @@
-from app.routes.job import crud
-from app.utils.db.db_helpers import execute_raw_sql
+from app.controllers.controller import rc
 from app.utils.tools import tools
 
-async def get_job_list(company_name: str = None,
-                       job_name: str = None,
-                       category: str = None):
-    return await crud.get_job_list(company_name, job_name, category)
+_list = []
+_index = {}
 
 
-async def add_job(data):
-    tools.get_current_time()
-    execute_raw_sql()
-    return await crud.add_job(data)
+def _get_fake_data():
+    return {
+        "id": tools.generate_request_id(),
+        "content": "hello world",
+    }
+
+
+@rc
+async def query_list():
+    return _list
+
+
+@rc
+async def add_list():
+    row = _get_fake_data()
+    _list.append(row)
+    _index[row["id"]] = len(_list)
+    return row
+
+
+@rc
+async def delete_list(id):
+    index = _index[id]
+    return _list.pop(index)
+
+
+@rc
+def raise_list():
+    raise NotImplementedError
