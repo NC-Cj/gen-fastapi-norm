@@ -20,36 +20,7 @@ class ResponseCode:
     INTERNAL_ERROR = 1002
 
 
-class PublicResponse(BaseModel):
-    """
-    Public Response.
-
-    Represents a response object for public cases.
-
-    Attributes:
-        code (int): The response code.
-        data (Optional[Any]): The response data (default: None).
-        msg (Optional[Any]): The response message (default: None).
-    """
-
-    code: int
-    data: Optional[Any] = None
-    msg: Optional[Any] = None
-
-
-class AbnormalResponse(BaseModel):
-    """
-    Abnormal Response.
-
-    Represents a response object for abnormal cases.
-
-    Attributes:
-        code (int): The response code.
-        data (Optional[Any]): The response data (default: None).
-        msg (Optional[Any]): The response message (default: None).
-        request_id (Optional[str]): The request ID (default: None).
-    """
-
+class Response(BaseModel):
     code: int
     data: Optional[Any] = None
     msg: Optional[Any] = None

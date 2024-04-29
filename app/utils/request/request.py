@@ -1,28 +1,27 @@
-import requests
+#  Copyright 2023/12/19 下午6:22 苏州谋迅智能科技有限公司
 
-from ..errors.error import CustomHTTPException
-from ..logger.log_setup import logger
+import aiohttp
+
+from app.config.constants import VAR_REQUEST_ID
+from app.utils.logger.setup import logger
 
 
-def send_traced_http_request(traceid,
-                             url,
-                             method='GET',
-                             params=None,
-                             data=None,
-                             headers=None):
+async def fetch_traced_async_response(session,
+                                      url,
+                                      *,
+                                      method='GET',
+                                      headers=None,
+                                      traceid=None,
+                                      **kwargs):
     if headers is None:
         headers = {}
 
-    headers["X-Request-ID"] = traceid
+    if traceid:
+        headers[VAR_REQUEST_ID] = traceid
 
     try:
-        response = requests.request(method, url, params=params, data=data, headers=headers)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logger.error(f"traced request failed: {e}, http code={response.status_code}")
-    else:
-        result = response.json()
-        if result["code"] != 1000:
-            raise CustomHTTPException(f"traceid={traceid}, response={result['code']} {result['msg']}")
-
-        return result
+        async with session.request(method, url, headers=headers, **kwargs) as response:
+            response.raise_for_status()
+            yield response
+    except aiohttp.ClientError as e:
+        logger.error(f"traced request failed: {e}, http code={response.status}")

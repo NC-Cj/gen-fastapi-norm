@@ -1,19 +1,18 @@
 import uuid
 from datetime import datetime
+from typing import Dict, Any, TypeVar, Type, List
 from typing import Union
 
 import pytz
 from pydantic import BaseModel
+from pydantic import create_model
+
+T = TypeVar('T', bound='RecursiveModel')
 
 
 def generate_request_id():
-    # Generate a random UUID
     uuid_str = str(uuid.uuid4())
-
-    # Remove the hyphens from the UUID
     uuid_str = uuid_str.replace("-", "")
-
-    # Insert hyphens at the appropriate positions
     return f"1-{uuid_str[:8]}-{uuid_str[8:12]}-{uuid_str[12:16]}-{uuid_str[16:]}"
 
 
@@ -22,7 +21,7 @@ def generate_request_time(timezone="Asia/Shanghai"):
 
 
 def body_to_orm_objects(orm_model,
-                        model: Union[BaseModel, list[BaseModel]],
+                        model: Union[BaseModel, List[BaseModel]],
                         field_mapping=None):
     if field_mapping is None:
         field_mapping = {}
@@ -70,3 +69,27 @@ def string_to_datetime(string,
                        format_str='%Y-%m-%d %H:%M:%S') -> datetime:
     """Convert string to time"""
     return datetime.strptime(string, format_str)
+
+
+class RecursiveModel(BaseModel):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for name, field in cls.model_fields.items():
+            if isinstance(field.type_, type) and issubclass(field.type_, RecursiveModel):
+                field.type_ = field.type_
+
+
+def dynamic_model(data: Dict[str, Any]) -> Type[RecursiveModel]:
+    def build_fields(d: Dict[str, Any], parent_key: str = '') -> Dict[str, Any]:
+        field_list = {}
+        for k, v in d.items():
+            key = f"{parent_key}_{k}" if parent_key else k
+            if isinstance(v, dict):
+                model_name = key.title().replace('_', '')
+                field_list[key] = (dynamic_model(v), ...)
+            else:
+                field_list[key] = (type(v), ...)
+        return field_list
+
+    fields = build_fields(data)
+    return create_model("Mode", __base__=RecursiveModel, **fields)
